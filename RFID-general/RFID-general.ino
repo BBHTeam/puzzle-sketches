@@ -104,7 +104,7 @@ void SetRFIDTags() {
 			if (!knownTag) {
 				bool tagSaved = false;
 				for (uint16_t i = 0; i < EEPROM.length()/RFIDTagLength && !tagSaved; i++) {
-					if (EEPROM.read(i*RFIDTagLength) != 255) {
+					if (EEPROM.read(i*RFIDTagLength) == 255) {
 						#ifdef Debug
 						Serial.print("Save tag ");
 						#endif
