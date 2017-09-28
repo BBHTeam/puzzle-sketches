@@ -1,50 +1,147 @@
 #include <MFRC522.h>
-#include <SPI.h>
+#include <EEPROM.h>
 
-/*#define RFIDReader1Pin 			2		//connect it to the SDA pin of the first MFRC522
-#define RFIDReader2Pin 			3		//connect it to the SDA pin of the second MFRC522
-#define RFIDReader3Pin 			4		//connect it to the SDA pin of the third MFRC522
-#define RFIDReader4Pin 			5		//connect it to the SDA pin of the fourth MFRC522
-#define RFIDReader5Pin 			6		//connect it to the SDA pin of the fifth MFRC522
-#define RFIDReader6Pin 			7		//connect it to the SDA pin of the sixth MFRC522
+//#define Debug
+#define RFIDTagLength			4
+#define OutputPin				9		//this pin will be high as long the right RFID tag is hold above the reader
 
-MFRC522 RFIDReader1(Reader1Pin, 255);
-MFRC522 RFIDReader2(Reader2Pin, 255);
-MFRC522 RFIDReader3(Reader3Pin, 255);
-MFRC522 RFIDReader4(Reader4Pin, 255);
-MFRC522 RFIDReader5(Reader5Pin, 255);
-MFRC522 RFIDReader6(Reader6Pin, 255);*/
 
 const uint8_t RFIDReaderPins[] = {2, 3, 4, 5, 6, 7}; //connect it to the SDA pins of the RFID readers
-MFRC522* RFIDReader[sizeof(RFIDReaderPins)];
+const uint32_t MasterTag = 0x42424242;		//change it to the UID of your master tag
+
+MFRC522 RFIDReader[sizeof(RFIDReaderPins)];
 bool RFIDReaderIsConnected[sizeof(RFIDReaderPins)];
+bool previousState = LOW;
 
 
 void setup() {
-	for (uint8_t i = 0; i < sizeof(RFIDReaderPins); i++) {
-		pinMode(RFIDReaderPins[i], OUTPUT);
-		digitalWrite(RFIDReaderPins[i], HIGH);
-	}
+	pinMode(OutputPin, OUTPUT);
+	#ifdef Debug
 	Serial.begin(9600);
+	#endif
 	SPI.begin();
 	for (uint8_t i = 0; i < sizeof(RFIDReaderPins); i++) {
-		digitalWrite(RFIDReaderPins[i], LOW);
-		SPI.transfer(0xA2);
-		RFIDReaderIsConnected[i] = SPI.transfer(0);
-		digitalWrite(RFIDReaderPins[i], HIGH);
-		if (RFIDReaderIsConnected[i]) {
-			RFIDReader[i] = new MFRC522(RFIDReaderPins[i], 255);
-			RFIDReader[i]->PCD_Init();
+		RFIDReader[i].PCD_Init(RFIDReaderPins[i], 255);
+		RFIDReaderIsConnected[i] = RFIDReader[i].PCD_ReadRegister(0x22);
+		#ifdef Debug
+		if (RFIDReaderIsConnected[i]){
+			Serial.print("Found RFID reader on pin ");
+			Serial.println(RFIDReaderPins[i]);
 		}
+		#endif
 	}
-	//for (uint8_t i = 0; i < RFIDReaderCount; i++)
-	
-	//if ()
-	
-	//if (ReaderTest.PCD_ReadRegister(0x22))
 }
 
 
 void loop() {
-	
+	bool validTag = true;
+	for (uint8_t i = 0; i < sizeof(RFIDReaderPins) && validTag; i++) {
+		if (RFIDReaderIsConnected[i]) {
+			if (RFIDReader[i].PICC_IsNewCardPresent() && RFIDReader[i].PICC_ReadCardSerial()) {
+				for (uint8_t j = 0; j < RFIDTagLength && validTag; j++) {
+					if ((MasterTag >> (8*(RFIDTagLength-j-1)) & 255) != RFIDReader[i].uid.uidByte[j]) validTag = false;
+				}
+				if (validTag) {
+					#ifdef Debug
+					Serial.println("Found master tag");
+					Serial.println("Begin editing tags");
+					#endif
+					RFIDReader[i].PICC_HaltA();
+					SetRFIDTags(i);
+				}
+				else {
+					RFIDReader[i].PICC_IsNewCardPresent();			//necassary, only every second call returns true if a card is hold above the reader
+					RFIDReader[i].PICC_ReadCardSerial();			//necassary, only every second call returns true if a card is hold above the reader
+					for (uint16_t j = 0; j < EEPROM.length()/RFIDTagLength/sizeof(RFIDReaderPins) && !validTag; j++) {
+						validTag = true;
+						for (uint8_t k = 0; k < RFIDTagLength && validTag; k++) {
+							if (EEPROM.read(i*RFIDTagLength + j*RFIDTagLength*sizeof(RFIDReaderPins) + k) != RFIDReader[i].uid.uidByte[k]) validTag = false;
+						}
+					}
+				}
+			}
+			else {
+				validTag = false;
+			}
+		}
+	}
+	if (validTag) {
+		if (previousState == LOW) {
+			#ifdef Debug
+			Serial.println("All tags were placed");
+			#endif
+			digitalWrite(OutputPin, HIGH);
+			previousState = HIGH;
+		}
+	}
+	else if (previousState == HIGH) {
+		#ifdef Debug
+		Serial.println("At least one tag was removed");
+		#endif
+		digitalWrite(OutputPin, LOW);
+		previousState = LOW;
+	}
+}
+
+
+void SetRFIDTags(uint8_t readerNum) {
+	while (1) {
+		if (RFIDReader[readerNum].PICC_IsNewCardPresent() && RFIDReader[readerNum].PICC_ReadCardSerial()) {
+			bool isMasterTag = true;
+			for (uint8_t i = 0; i < RFIDTagLength && isMasterTag; i++) {
+				if ((MasterTag >> (8*(RFIDTagLength-i-1)) & 255) != RFIDReader[readerNum].uid.uidByte[i]) isMasterTag = false;
+			}
+			if (isMasterTag) {
+				#ifdef Debug
+				Serial.println("End editing tags");
+				#endif
+				RFIDReader[readerNum].PICC_HaltA();
+				return;
+			}
+			bool knownTag = false;
+			for (uint16_t i = 0; i < EEPROM.length()/RFIDTagLength/sizeof(RFIDReaderPins) && !knownTag; i++) {
+				knownTag = true;
+				for (uint8_t j = 0; j < RFIDTagLength && knownTag; j++) {
+					if (EEPROM.read(i*RFIDTagLength*sizeof(RFIDReaderPins) + readerNum*RFIDTagLength + j) != RFIDReader[readerNum].uid.uidByte[j]) knownTag = false;
+				}
+				if (knownTag) {
+					#ifdef Debug
+					Serial.print("Delete tag ");
+					#endif
+					for (uint8_t j = 0; j < RFIDTagLength; j++) {
+						#ifdef Debug
+						Serial.print('\t');
+						Serial.print(RFIDReader[readerNum].uid.uidByte[j], HEX);
+						#endif
+						EEPROM.write(i*RFIDTagLength*sizeof(RFIDReaderPins) + readerNum*RFIDTagLength + j, 255);
+					}
+					#ifdef Debug
+					Serial.println("");
+					#endif
+				}
+			}
+			if (!knownTag) {
+				bool tagSaved = false;
+				for (uint16_t i = 0; i < EEPROM.length()/RFIDTagLength/sizeof(RFIDReaderPins) && !tagSaved; i++) {
+					if (EEPROM.read(i*RFIDTagLength*sizeof(RFIDReaderPins) + readerNum*RFIDTagLength) == 255) {
+						#ifdef Debug
+						Serial.print("Save tag ");
+						#endif
+						for (uint8_t j = 0; j < RFIDTagLength; j++) {
+							#ifdef Debug
+							Serial.print('\t');
+							Serial.print(RFIDReader[readerNum].uid.uidByte[j], HEX);
+							#endif
+							EEPROM.write(i*RFIDTagLength*sizeof(RFIDReaderPins) + j, RFIDReader[readerNum].uid.uidByte[j]);
+						}
+						#ifdef Debug
+						Serial.println("");
+						#endif
+						tagSaved = true;
+					}
+				}
+			}
+		}
+		RFIDReader[readerNum].PICC_HaltA();
+	}
 }
