@@ -9,7 +9,7 @@
 #define MaxImpulseTime		300		//in ms
 #define MaxWaitingTime		5000	//in ms
 
-SoftwareSerial Mp3Module(Mp3ModulePin, 255);
+SoftwareSerial Mp3Module(255, Mp3ModulePin);
 
 const uint8_t telephoneNumber[] = {1, 2, 3, 4};
 
