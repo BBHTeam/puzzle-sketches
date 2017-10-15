@@ -2,7 +2,7 @@
 
 #define Mp3Module1Pin		A1		// connect it over 1kOhm with the RX pin of the first DFPlayerMini
 #define Mp3Module2Pin		A5		// connect it over 1kOhm with the RX pin of the second DFPlayerMini
-#define BusyPin				A2		// connect it to the BUSY pin of the second DFPlayerMini 
+#define BusyPin 			A2		// connect it to the BUSY pin of the second DFPlayerMini 
 #define VolumeModule1		30		// max: 30
 #define VolumeModule2		30		// max: 30
 
@@ -43,7 +43,7 @@ void SendCommand(Stream* _Serial, uint8_t cmd, uint8_t paraml=0x00, uint8_t para
 }
 
 
-void SetVolume(Stream* _Serial, byte volume) {
+void SetVolume(Stream* _Serial, uint8_t volume) {
 	SendCommand(_Serial, 0x10, volume, 0x01);
 }
 
