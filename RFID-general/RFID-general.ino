@@ -4,6 +4,8 @@
 #define Debug					0		// set this to 1 to enable debug over the Serial interface
 #define RFIDReaderPin			10		// connect it to the SDA pin of the RFID reader
 #define OutputPin				9		// this pin will be high as long the right RFID tag is hold above the reader
+#define LEDGreenPin				6		// connect this pin to the green LED
+#define LEDRedPin				7		// connect this pin to the red LED
 #define RFIDTagLength			4
 
 
@@ -35,6 +37,8 @@ void loop() {
 			Serial.println("Begin editing tags");
 			#endif
 			RFIDReader.PICC_HaltA();
+			digitalWrite(LEDGreenPin, LOW);		// switch off the green LED first to prevent over current when using a duo LED with just one resistor
+			digitalWrite(LEDRedPin, HIGH);
 			SetRFIDTags();
 		}
 		else {
@@ -77,6 +81,8 @@ void SetRFIDTags() {
 				Serial.println("End editing tags");
 				#endif
 				RFIDReader.PICC_HaltA();
+				digitalWrite(LEDRedPin, LOW);		// switch off the red LED first to prevent over current when using a duo LED with just one resistor
+				digitalWrite(LEDGreenPin, HIGH);
 				return;
 			}
 			bool knownTag = false;

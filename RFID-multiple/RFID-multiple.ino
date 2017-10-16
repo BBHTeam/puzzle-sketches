@@ -3,6 +3,8 @@
 
 #define Debug					0		// set this to 1 to enable debug over the Serial interface
 #define OutputPin				9		// this pin will be high as long the right RFID tag is hold above the reader
+#define LEDGreenPin				6		// connect this pin to the green LED
+#define LEDRedPin				7		// connect this pin to the red LED
 #define RFIDTagLength			4
 
 
@@ -16,6 +18,9 @@ bool previousState = LOW;
 
 void setup() {
 	pinMode(OutputPin, OUTPUT);
+	pinMode(LEDGreenPin, OUTPUT);
+	pinMode(LEDRedPin, OUTPUT);
+	digitalWrite(LEDGreenPin, HIGH);
 	for (uint8_t i = 0; i < sizeof(RFIDReaderPins); i++) {
 		RFIDReader[i].PCD_Init(RFIDReaderPins[i], 255);
 	}
@@ -23,7 +28,7 @@ void setup() {
 	Serial.begin(9600);
 	#endif
 	SPI.begin();
-	for (uint8_t i = 0; i < sizeof(RFIDReaderPins); i++)
+	for (uint8_t i = 0; i < sizeof(RFIDReaderPins); i++) {
 		RFIDReaderIsConnected[i] = RFIDReader[i].PCD_ReadRegister(0x22);
 		#if Debug
 		if (RFIDReaderIsConnected[i]){
@@ -49,6 +54,8 @@ void loop() {
 					Serial.println("Begin editing tags");
 					#endif
 					RFIDReader[i].PICC_HaltA();
+					digitalWrite(LEDGreenPin, LOW);		// switch off the green LED first to prevent over current when using a duo LED with just one resistor
+					digitalWrite(LEDRedPin, HIGH);
 					SetRFIDTags(i);
 				}
 				else {
@@ -98,6 +105,8 @@ void SetRFIDTags(uint8_t readerNum) {
 				Serial.println("End editing tags");
 				#endif
 				RFIDReader[readerNum].PICC_HaltA();
+				digitalWrite(LEDRedPin, LOW);		// switch off the red LED first to prevent over current when using a duo LED with just one resistor
+				digitalWrite(LEDGreenPin, HIGH);
 				return;
 			}
 			bool knownTag = false;
