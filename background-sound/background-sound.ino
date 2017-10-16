@@ -6,8 +6,8 @@
 #define VolumeModule1		30		// max: 30
 #define VolumeModule2		30		// max: 30
 
-SoftwareSerial Mp3Module1(255, Mp3Module1Pin); 
-SoftwareSerial Mp3Module2(255, Mp3Module2Pin); 
+SoftwareSerial Mp3Module1(255, Mp3Module1Pin);
+SoftwareSerial Mp3Module2(255, Mp3Module2Pin);
 
 const uint8_t ButtonPins[] = {7, 8, 9, 10, 11, 12};
 
