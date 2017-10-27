@@ -29,12 +29,13 @@ void loop() {
 	for (uint8_t i = 0; i < sizeof(ButtonPins); i++) {
 		if (digitalRead(ButtonPins[i]) == LOW) {
 			if (lastState[i] == HIGH) {
+				lastState[i] = LOW;
 				PlayFile(&Mp3Module2, i + 1);
 				delay(DebounceTime);
 			}
 		}
 		else if (lastState[i] == LOW) {
-			lastState[i] == HIGH;
+			lastState[i] = HIGH;
 			delay(DebounceTime);
 		}
 	}
