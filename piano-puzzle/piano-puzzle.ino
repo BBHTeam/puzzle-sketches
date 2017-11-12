@@ -9,7 +9,7 @@ SoftwareSerial Mp3Module(255, Mp3ModulePin);
 
 const uint8_t PianoKeys[] = {2, 3, 4, 5, 6, 7};		// these pins have to be connected to the buttons in the piano keys
 const uint8_t KeyOrder[] = {1, 2, 3, 4, 5, 6};				// this is the order the keys have to be played (1 means first key declard in PianoKeys[])
-uint8_t PositionMelody = 0; 						// this variable counts, how many right keys have already been hit, don't change its initial value
+uint8_t MelodyPosition = 0; 						// this variable counts how many right keys have already been hit, don't change its initial value
 bool lastState[sizeof(PianoKeys)];
 bool lastOutputState = LOW;
 
@@ -20,7 +20,7 @@ void setup() {
 	}
 	pinMode(OutputPin, OUTPUT);
 	Mp3Module.begin(9600);
-	SetVolume(30);
+	SetVolume(Volume);
 }
 
 
@@ -30,16 +30,17 @@ void loop() {
 			if (lastState[i] == HIGH) {
 				lastState[i] = LOW;
 				PlayFile(i+1);
-				if (i+1 == KeyOrder[PositionMelody]) {
-					PositionMelody++;
-					if (PositionMelody == sizeof(KeyOrder)) {
+				if (i+1 == KeyOrder[MelodyPosition]) {
+					MelodyPosition++;
+					if (MelodyPosition == sizeof(KeyOrder)) {
 						lastOutputState = !lastOutputState;
 						digitalWrite(OutputPin, lastOutputState);
+						MelodyPosition = 0;
 					}
 				}
-				else if (i+1 != KeyOrder[PositionMelody-1]) {
-					PositionMelody = 0;
-					if (i+1 == KeyOrder[0]) PositionMelody++;
+				else if (i+1 != KeyOrder[MelodyPosition-1]) {
+					MelodyPosition = 0;
+					if (i+1 == KeyOrder[0]) MelodyPosition++;
 				}
 				delay(DebounceTime);
 			}
