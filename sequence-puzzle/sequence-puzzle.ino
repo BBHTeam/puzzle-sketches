@@ -38,7 +38,7 @@ void loop() {
 					if (SequencePosition == sizeof(ButtonSequence)) {
 						PlayFile(1);
 						digitalWrite(OutputPin, LOW);
-						delay();
+						delay(RelaySwitchingTime);
 						digitalWrite(OutputPin, HIGH);
 						SequencePosition = 0;
 					}
