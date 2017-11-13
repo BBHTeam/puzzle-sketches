@@ -7,10 +7,10 @@
 
 SoftwareSerial Mp3Module(255, Mp3ModulePin); 
 
-const uint8_t ButtonPins[] = {2, 3, 4, 5, 6, 7};		// these pins have to be connected to the buttons
-const uint8_t ButtonSequence[] = {1, 2, 3, 4, 5, 6};				// this is the order the buttins have to be pressed (1 means first key declard in ButtonPins[])
-uint8_t SequencePosition = 0; 						// this variable counts how many right buttons have already been pressed, don't change its initial value
-bool lastState[sizeof(ButtonPins)];
+const uint8_t ButtonPins[] = {2, 3, 4, 5, 6, 7};
+const uint8_t ButtonSequence[] = {1, 2, 3, 4, 5, 6};	// this is the order the buttins have to be pressed (1 means first key declard in ButtonPins[])
+uint8_t SequencePosition = 0; 							// this variable counts how many right buttons have already been pressed, don't change its initial value
+uint32_t previousMillis[sizeof(ButtonPins)];
 bool lastOutputState = LOW;
 
 
@@ -27,12 +27,15 @@ void setup() {
 void loop() {
 	for (uint8_t i = 0; i < sizeof(ButtonPins); i++) {
 		if (digitalRead(ButtonPins[i]) == LOW) {
-			if (lastState[i] == HIGH) {
-				lastState[i] = LOW;
+			if (previousMillis[i] == 0) {
+				previousMillis[i] = millis();
+			}
+			else if (previousMillis[i] != 1 && millis() - previousMillis[i] >= DebounceTime) {
+				PlayFile(i+1);
+				previousMillis[i] = 1;
 				if (i+1 == ButtonSequence[SequencePosition]) {
 					SequencePosition++;
 					if (SequencePosition == sizeof(ButtonSequence)) {
-						PlayFile(1);
 						lastOutputState = !lastOutputState;
 						digitalWrite(OutputPin, lastOutputState);
 						SequencePosition = 0;
@@ -42,12 +45,10 @@ void loop() {
 					SequencePosition = 0;
 					if (i+1 == ButtonSequence[0]) SequencePosition++;
 				}
-				delay(DebounceTime);
 			}
 		}
-		else if (lastState[i] == LOW) {
-			lastState[i] = HIGH;
-			delay(DebounceTime);
+		else if (previousMillis[i] != 0) {
+			previousMillis[i] = 0;
 		}
 	}
 }

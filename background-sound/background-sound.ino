@@ -7,7 +7,6 @@
 SoftwareSerial Mp3Module(255, Mp3ModulePin);
 
 const uint8_t ButtonPins[] = {2, 3, 4, 5, 6, 7};
-bool lastState[sizeof(ButtonPins)];
 uint32_t previousMillis[sizeof(ButtonPins)];
 
 
@@ -17,7 +16,6 @@ void setup() {
 	}
 	Mp3Module.begin(9600);
 	SetVolume(Volume);
-	while (millis() < 2) {} // make sure, millis() returns at least 2 to prevent complications with buttons pressed while starting up
 }
 
 
