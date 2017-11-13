@@ -3,7 +3,8 @@
 #define Mp3ModulePin		A5		// connect it over 1kOhm with the RX pin of the DFPlayerMini
 #define OutputPin 			A4		// this pin will be set to HIGH if the puzzle is solved
 #define Volume				30		// max: 30
-#define DebounceTime		20
+#define RelaySwitchingTime	1000	// how long the outputpin will stay low if the puzzle is solved, in ms
+#define DebounceTime		20		// in ms
 
 SoftwareSerial Mp3Module(255, Mp3ModulePin); 
 
@@ -11,7 +12,6 @@ const uint8_t ButtonPins[] = {2, 3, 4, 5, 6, 7};
 const uint8_t ButtonSequence[] = {1, 2, 3, 4, 5, 6};	// this is the order the buttins have to be pressed (1 means first key declard in ButtonPins[])
 uint8_t SequencePosition = 0; 							// this variable counts how many right buttons have already been pressed, don't change its initial value
 uint32_t previousMillis[sizeof(ButtonPins)];
-bool lastOutputState = LOW;
 
 
 void setup() {
@@ -19,6 +19,7 @@ void setup() {
 		pinMode(ButtonPins[i], INPUT_PULLUP);
 	}
 	pinMode(OutputPin, OUTPUT);
+	digitalWrite(OutputPin, HIGH);
 	Mp3Module.begin(9600);
 	SetVolume(Volume);
 }
@@ -36,8 +37,9 @@ void loop() {
 				if (i+1 == ButtonSequence[SequencePosition]) {
 					SequencePosition++;
 					if (SequencePosition == sizeof(ButtonSequence)) {
-						lastOutputState = !lastOutputState;
-						digitalWrite(OutputPin, lastOutputState);
+						digitalWrite(OutputPin, LOW);
+						delay();
+						digitalWrite(OutputPin, HIGH);
 						SequencePosition = 0;
 					}
 				}
