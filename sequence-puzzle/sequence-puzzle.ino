@@ -32,11 +32,11 @@ void loop() {
 				previousMillis[i] = millis();
 			}
 			else if (previousMillis[i] != 1 && millis() - previousMillis[i] >= DebounceTime) {
-				PlayFile(i+1);
 				previousMillis[i] = 1;
 				if (i+1 == ButtonSequence[SequencePosition]) {
 					SequencePosition++;
 					if (SequencePosition == sizeof(ButtonSequence)) {
+						PlayFile(1);
 						digitalWrite(OutputPin, LOW);
 						delay();
 						digitalWrite(OutputPin, HIGH);
